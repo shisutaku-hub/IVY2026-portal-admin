@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>【管理画面】ザキャンタウン</title>
+  <style>
+    body { font-family: sans-serif; background: #f1f5f9; padding: 15px; margin: 0; color: #333; }
+    h1 { font-size: 18px; color: #1e293b; text-align: center; }
+    .booth-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .booth-name { font-weight: bold; font-size: 16px; margin-bottom: 10px; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; }
+    .btn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-bottom: 10px; }
+    button { padding: 12px 8px; border: 2px solid #cbd5e1; border-radius: 8px; background: white; font-weight: bold; font-size: 13px; cursor: pointer; transition: 0.2s; }
+    button:active { transform: translateY(2px); }
+    .btn-green.active { background: #22c55e; color: white; border-color: #16a34a; }
+    .btn-yellow.active { background: #eab308; color: white; border-color: #ca8a04; }
+    .btn-red.active { background: #ef4444; color: white; border-color: #dc2626; }
+    input[type="text"] { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font-size: 16px; margin-bottom: 10px; }
+    .update-btn { width: 100%; background: #3b82f6; color: white; border: none; padding: 14px; font-size: 16px; margin-top: 5px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 15px; }
+    #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+    @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+    @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+  </style>
+</head>
+<body>
+
+  <h1>📱 ブース状況 管理パネル</h1>
+
+  <!-- ⚡️ 速報テロップ -->
+  <div class="booth-card" style="border-left: 5px solid #f59e0b;">
+    <div class="booth-name">⚡️ 速報テロップ</div>
+    <p style="font-size: 12px; color: #64748b; margin-top: -5px; margin-bottom: 10px;">
+      サイトの一番上に流れるお知らせテキストを変更できます。
+    </p>
+    <input type="text" id="msg-ticker" placeholder="例: ⚡️【速報】メインステージでクイズ大会スタート！">
+    <button class="update-btn" style="background: #f59e0b;" onclick="updateData('ticker')">速報を配信する</button>
+  </div>
+
+  <!-- 🧩 室内謎解きラリー -->
+  <div class="booth-card">
+    <div class="booth-name">🧩 室内謎解きラリー</div>
+    <div class="btn-grid" id="status-riddle">
+      <button class="btn-green active" onclick="selectStatus('riddle', this, '🟢 開催中 (待ちなし)')">待ちなし</button>
+      <button class="btn-yellow" onclick="selectStatus('riddle', this, '🟡 整理券配布中')">整理券配布</button>
+      <button class="btn-red" onclick="selectStatus('riddle', this, '🔴 混雑中 (30分以上)')">混雑中</button>
+      <button class="btn-red" onclick="selectStatus('riddle', this, '🔴 受付終了')">受付終了</button>
+    </div>
+    <input type="text" id="msg-riddle" placeholder="補足（例: 現在14:30の回をご案内中）">
+    <button class="update-btn" onclick="updateData('riddle')">データを更新する</button>
+  </div>
+
+  <!-- ⚔️ 対戦ブース -->
+  <div class="booth-card">
+    <div class="booth-name">⚔️ 対戦ブース</div>
+    <div class="btn-grid" id="status-battle">
+      <button class="btn-yellow active" onclick="selectStatus('battle', this, '🟡 整理券配布中')">整理券配布中</button>
+      <button class="btn-red" onclick="selectStatus('battle', this, '🔴 受付終了')">受付終了</button>
+    </div>
+    <input type="text" id="msg-battle" placeholder="補足メッセージ">
+    <button class="update-btn" onclick="updateData('battle')">データを更新する</button>
+  </div>
+
+  <!-- 🎨 塗り絵ブース -->
+  <div class="booth-card">
+    <div class="booth-name">🎨 塗り絵ブース</div>
+    <div class="btn-grid" id="status-nurie">
+      <button class="btn-green active" onclick="selectStatus('nurie', this, '🟢 空きあり')">空きあり</button>
+      <button class="btn-yellow" onclick="selectStatus('nurie', this, '🟡 混雑中')">混雑中</button>
+      <button class="btn-red" onclick="selectStatus('nurie', this, '🔴 受付終了')">受付終了</button>
+    </div>
+    <input type="text" id="msg-nurie" placeholder="補足メッセージ">
+    <button class="update-btn" onclick="updateData('nurie')">データを更新する</button>
+  </div>
+
+  <div id="toast">更新しました！</div>
+
+  <script>
+    const BIN_ID = '6abb2a57ffd5d160533a032a';
+    const MASTER_KEY = '$2a$10$e4tY4WafdFsn6/EAz/M1V.jaqLMfamxe5UgznXGn59IPiXvXfsL9a';
+    const URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+
+    const currentLocalState = {
+      riddle: { status: '🟢 開催中 (待ちなし)' },
+      battle: { status: '🟡 整理券配布中' },
+      nurie: { status: '🟢 空きあり' }
+    };
+
+    function selectStatus(boothId, btnElement, statusText) {
+      currentLocalState[boothId].status = statusText;
+      const buttons = document.querySelectorAll(`#status-${boothId} button`);
+      buttons.forEach(btn => btn.classList.remove('active'));
+      btnElement.classList.add('active');
+    }
+
+    async function updateData(boothId) {
+      try {
+        // 1. 現在の全データを取得
+        const getRes = await fetch(URL, { 
+          headers: { 'X-Master-Key': MASTER_KEY }
+        });
+        const getData = await getRes.json();
+        const fullData = getData.record || {};
+
+        // 2. 変更部分だけ上書き
+        if (boothId === 'ticker') {
+          const newsText = document.getElementById('msg-ticker').value;
+          if (!newsText) { alert('速報テキストを入力してください。'); return; }
+          if (!fullData.ticker) fullData.ticker = {};
+          fullData.ticker.news = newsText;
+        } else {
+          if (!fullData[boothId]) fullData[boothId] = {};
+          fullData[boothId].status = currentLocalState[boothId].status;
+          fullData[boothId].message = document.getElementById(`msg-${boothId}`).value;
+        }
+
+        // 3. 上書きしたデータをJSONBinへ保存（PUT）
+        const putRes = await fetch(URL, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Master-Key': MASTER_KEY
+          },
+          body: JSON.stringify(fullData)
+        });
+
+        if (putRes.ok) {
+          showToast();
+          if (boothId === 'ticker') document.getElementById('msg-ticker').value = '';
+        } else {
+          alert('更新に失敗しました。JSONBinの設定を確認してください。');
+        }
+      } catch (e) {
+        alert('通信エラーが発生しました: ' + e);
+      }
+    }
+
+    function showToast() {
+      const toast = document.getElementById("toast");
+      toast.className = "show";
+      setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+    }
+  </script>
+</body>
+</html>
