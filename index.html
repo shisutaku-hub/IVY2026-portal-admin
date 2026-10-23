@@ -46,7 +46,6 @@
       <button class="btn-red" onclick="selectStatus('riddle', this, '🔴 混雑中 (30分以上)')">混雑中</button>
       <button class="btn-red" onclick="selectStatus('riddle', this, '🔴 受付終了')">受付終了</button>
     </div>
-    <input type="text" id="msg-riddle" placeholder="補足（例: 現在14:30の回をご案内中）">
     <button class="update-btn" onclick="updateData('riddle')">データを更新する</button>
   </div>
 
@@ -57,7 +56,6 @@
       <button class="btn-yellow active" onclick="selectStatus('battle', this, '🟡 整理券配布中')">整理券配布中</button>
       <button class="btn-red" onclick="selectStatus('battle', this, '🔴 受付終了')">受付終了</button>
     </div>
-    <input type="text" id="msg-battle" placeholder="補足メッセージ">
     <button class="update-btn" onclick="updateData('battle')">データを更新する</button>
   </div>
 
@@ -69,7 +67,6 @@
       <button class="btn-yellow" onclick="selectStatus('nurie', this, '🟡 混雑中')">混雑中</button>
       <button class="btn-red" onclick="selectStatus('nurie', this, '🔴 受付終了')">受付終了</button>
     </div>
-    <input type="text" id="msg-nurie" placeholder="補足メッセージ">
     <button class="update-btn" onclick="updateData('nurie')">データを更新する</button>
   </div>
 
@@ -111,7 +108,6 @@
         } else {
           if (!fullData[boothId]) fullData[boothId] = {};
           fullData[boothId].status = currentLocalState[boothId].status;
-          fullData[boothId].message = document.getElementById(`msg-${boothId}`).value;
         }
 
         // 3. 上書きしたデータをJSONBinへ保存（PUT）
